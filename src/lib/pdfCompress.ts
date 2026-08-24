@@ -30,33 +30,43 @@ export interface PdfCompressProgress {
 // visually free on-screen, so scale is the first lever, not quality.
 const PRIMARY_QUALITY = 0.82
 
-// Never downsample an image's long edge below this many pixels — roughly
-// the equivalent of ~100 DPI for a normal printed photo, below which text
-// or fine detail inside the image starts to visibly break down.
-const MIN_LONG_EDGE = 480
-const MIN_SCALE = 0.15
-const SCALE_STEPS = 6
+// Floors for the scale-only phase. Low enough that even a very aggressive
+// target (e.g. shrinking a multi-photo PDF by 100x) is reachable without
+// falling back to quality loss or whole-page rasterization.
+const MIN_LONG_EDGE = 220
+const MIN_SCALE = 0.05
+const SCALE_STEPS = 8
 
 // Secondary fallback if downsampling to the floor still can't hit the
-// target: start trading quality away too, but stay above the point where
-// JPEG blocking becomes obviously ugly.
-const FALLBACK_MIN_QUALITY = 0.5
-const FALLBACK_QUALITY_STEPS = 5
+// target: start trading quality away too.
+const FALLBACK_MIN_QUALITY = 0.3
+const FALLBACK_QUALITY_STEPS = 6
 
-function targetDims(nativeW: number, nativeH: number, scale: number): { w: number; h: number } {
+// Binary-search measurements only need to know how big the *result* would
+// be, not the result itself, so they skip pdf-lib entirely (no swapImage,
+// no pdfDoc.save()) and just sum freshly-encoded JPEG byte lengths against
+// a one-time baseline of "everything that isn't a recompressed image".
+// That turns what used to be a full PDF re-serialization per search step
+// into a handful of cheap canvas encodes, which is where nearly all of the
+// wall-clock time in PDF compression used to go.
+const ESTIMATE_SAFETY_MARGIN = 0.99
+
+function scaledDims(nativeW: number, nativeH: number, scale: number, minLongEdge: number): { w: number; h: number } {
   const longEdge = Math.max(nativeW, nativeH)
-  const floorEdge = Math.min(longEdge, MIN_LONG_EDGE)
+  const floorEdge = Math.min(longEdge, minLongEdge)
   const effectiveEdge = Math.max(longEdge * scale, floorEdge)
   const ratio = effectiveEdge / longEdge
   return { w: Math.max(1, Math.round(nativeW * ratio)), h: Math.max(1, Math.round(nativeH * ratio)) }
 }
 
-async function encodeCandidate(
-  decoded: DecodedImage,
-  scale: number,
-  quality: number,
-): Promise<{ bytes: Uint8Array; width: number; height: number }> {
-  const { w, h } = targetDims(decoded.width, decoded.height, scale)
+interface EncodedImage {
+  bytes: Uint8Array
+  width: number
+  height: number
+}
+
+async function encodeCandidate(decoded: DecodedImage, scale: number, quality: number): Promise<EncodedImage> {
+  const { w, h } = scaledDims(decoded.width, decoded.height, scale, MIN_LONG_EDGE)
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
@@ -67,21 +77,24 @@ async function encodeCandidate(
   return { bytes, width: w, height: h }
 }
 
-/** Recompresses every candidate image into `pdfDoc` in place and saves. */
-async function applyAttempt(
-  pdfDoc: PDFDocument,
-  candidates: Map<string, ImageCandidate>,
+/** Encodes every candidate independently and in parallel; pure measurement, no pdf-lib mutation. */
+async function encodeAllCandidates(
   decoded: Map<string, DecodedImage>,
   scale: number,
   quality: number,
-): Promise<Uint8Array> {
-  for (const [key, img] of decoded) {
+): Promise<Map<string, EncodedImage>> {
+  const entries = await Promise.all(
+    Array.from(decoded, async ([key, img]) => [key, await encodeCandidate(img, scale, quality)] as const),
+  )
+  return new Map(entries)
+}
+
+function applyEncoded(pdfDoc: PDFDocument, candidates: Map<string, ImageCandidate>, encoded: Map<string, EncodedImage>) {
+  for (const [key, enc] of encoded) {
     const candidate = candidates.get(key)
     if (!candidate) continue
-    const { bytes, width, height } = await encodeCandidate(img, scale, quality)
-    swapImage(pdfDoc, candidate.ref, bytes, width, height)
+    swapImage(pdfDoc, candidate.ref, enc.bytes, enc.width, enc.height)
   }
-  return pdfDoc.save({ useObjectStreams: true })
 }
 
 /**
@@ -122,12 +135,19 @@ async function binarySearchParam(
 // aggressive target the image-based pass alone can't reach). This rebuilds
 // every page as a single JPEG, which loses text selectability, so it's only
 // used when the structural + image-swap pipeline above isn't enough.
+//
+// Pages are rendered with pdf.js exactly once, at a fixed base scale. Every
+// scale/quality combination tried during the search is produced by
+// downscaling and re-encoding that cached bitmap on a canvas — cheap 2D
+// ops — instead of re-invoking pdf.js (font rasterization, vector paths)
+// per attempt, which used to dominate compression time on multi-page PDFs.
 
-const RASTER_SCALE_ATTEMPTS = [2, 1.5, 1.15, 1]
+const RASTER_PRIMARY_QUALITY = 0.75
+const RASTER_MIN_QUALITY = 0.3
+const RASTER_MIN_SCALE = 0.08
+const RASTER_MIN_LONG_EDGE = 220
+const RASTER_SCALE_STEPS = 8
 const RASTER_QUALITY_STEPS = 6
-const RASTER_MIN_READABLE_QUALITY = 0.4
-const RASTER_FALLBACK_MIN_QUALITY = 0.12
-const RASTER_FALLBACK_SCALE = 0.75
 
 async function renderPages(doc: PDFDocumentProxy, scale: number): Promise<HTMLCanvasElement[]> {
   const canvases: HTMLCanvasElement[] = []
@@ -140,47 +160,36 @@ async function renderPages(doc: PDFDocumentProxy, scale: number): Promise<HTMLCa
     const ctx = canvas.getContext('2d')!
     await page.render({ canvasContext: ctx, viewport, canvas }).promise
     canvases.push(canvas)
+    page.cleanup()
   }
   return canvases
 }
 
-async function buildRasterPdf(canvases: HTMLCanvasElement[], quality: number): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create()
-  for (const canvas of canvases) {
-    const blob = await canvasToBlob(canvas, 'image/jpeg', quality)
-    const bytes = new Uint8Array(await blob.arrayBuffer())
-    const embedded = await pdf.embedJpg(bytes)
-    const page = pdf.addPage([canvas.width, canvas.height])
-    page.drawImage(embedded, { x: 0, y: 0, width: canvas.width, height: canvas.height })
-  }
-  return pdf.save()
+type RasterPageAttempt = EncodedImage
+
+async function encodeRasterAttempt(base: HTMLCanvasElement[], scale: number, quality: number): Promise<RasterPageAttempt[]> {
+  return Promise.all(
+    base.map(async (canvas) => {
+      const { w, h } = scaledDims(canvas.width, canvas.height, scale, RASTER_MIN_LONG_EDGE)
+      const resized = document.createElement('canvas')
+      resized.width = w
+      resized.height = h
+      resized.getContext('2d')!.drawImage(canvas, 0, 0, w, h)
+      const blob = await canvasToBlob(resized, 'image/jpeg', quality)
+      const bytes = new Uint8Array(await blob.arrayBuffer())
+      return { bytes, width: w, height: h }
+    }),
+  )
 }
 
-async function searchRasterQuality(
-  canvases: HTMLCanvasElement[],
-  targetBytes: number,
-  minQuality: number,
-  onTry?: (quality: number) => void,
-): Promise<{ bytes: Uint8Array | null; floorBytes: Uint8Array }> {
-  let lo = minQuality
-  let hi = 1
-  onTry?.(lo)
-  const floorBytes = await buildRasterPdf(canvases, lo)
-  if (floorBytes.length > targetBytes) return { bytes: null, floorBytes }
-
-  let best = floorBytes
-  for (let i = 0; i < RASTER_QUALITY_STEPS; i++) {
-    const q = (lo + hi) / 2
-    onTry?.(q)
-    const bytes = await buildRasterPdf(canvases, q)
-    if (bytes.length <= targetBytes) {
-      best = bytes
-      lo = q
-    } else {
-      hi = q
-    }
+async function buildRasterPdf(attempt: RasterPageAttempt[]): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create()
+  for (const page of attempt) {
+    const embedded = await pdf.embedJpg(page.bytes)
+    const pdfPage = pdf.addPage([page.width, page.height])
+    pdfPage.drawImage(embedded, { x: 0, y: 0, width: page.width, height: page.height })
   }
-  return { bytes: best, floorBytes }
+  return pdf.save()
 }
 
 async function rasterizeFallback(
@@ -189,38 +198,43 @@ async function rasterizeFallback(
   onProgress?: (p: PdfCompressProgress) => void,
 ): Promise<{ bytes: Uint8Array; hitTarget: boolean }> {
   const doc = await pdfjsLib.getDocument({ data: data.slice() }).promise
-  let smallest: Uint8Array | null = null
+  const baseScale = doc.numPages > 15 ? 1 : 1.5
+  onProgress?.({ stage: 'rendering', scaleAttempt: 0, detail: `Rendering ${doc.numPages} page${doc.numPages === 1 ? '' : 's'}` })
+  const base = await renderPages(doc, baseScale)
 
-  for (let s = 0; s < RASTER_SCALE_ATTEMPTS.length; s++) {
-    const scale = RASTER_SCALE_ATTEMPTS[s]
-    onProgress?.({ stage: 'rendering', scaleAttempt: s, detail: `Rendering pages at ${scale}x` })
-    const canvases = await renderPages(doc, scale)
-    const { bytes, floorBytes } = await searchRasterQuality(canvases, targetBytes, RASTER_MIN_READABLE_QUALITY, (q) =>
-      onProgress?.({ stage: 'searching', scaleAttempt: s, detail: `Trying quality ${Math.round(q * 100)}%` }),
+  const estimateTarget = targetBytes * ESTIMATE_SAFETY_MARGIN
+  const sumBytes = (attempt: RasterPageAttempt[]) => attempt.reduce((sum, p) => sum + p.bytes.length, 0)
+
+  const measureScale = async (scale: number) => {
+    onProgress?.({ stage: 'searching', scaleAttempt: 0, detail: `Trying page scale ${Math.round(scale * 100)}%` })
+    return sumBytes(await encodeRasterAttempt(base, scale, RASTER_PRIMARY_QUALITY))
+  }
+  const scaleResult = await binarySearchParam(measureScale, RASTER_MIN_SCALE, 1, RASTER_SCALE_STEPS, estimateTarget)
+
+  let finalScale = scaleResult.value
+  let finalQuality = RASTER_PRIMARY_QUALITY
+  let hitTarget = scaleResult.fits
+
+  if (!scaleResult.fits) {
+    const measureQuality = async (quality: number) => {
+      onProgress?.({ stage: 'searching', scaleAttempt: 1, detail: `Trying page quality ${Math.round(quality * 100)}%` })
+      return sumBytes(await encodeRasterAttempt(base, RASTER_MIN_SCALE, quality))
+    }
+    const qualityResult = await binarySearchParam(
+      measureQuality,
+      RASTER_MIN_QUALITY,
+      RASTER_PRIMARY_QUALITY,
+      RASTER_QUALITY_STEPS,
+      estimateTarget,
     )
-    if (!smallest || floorBytes.length < smallest.length) smallest = floorBytes
-    if (bytes) return { bytes, hitTarget: true }
+    finalScale = RASTER_MIN_SCALE
+    finalQuality = qualityResult.fits ? qualityResult.value : RASTER_MIN_QUALITY
+    hitTarget = qualityResult.fits
   }
 
-  onProgress?.({ stage: 'rendering', scaleAttempt: RASTER_SCALE_ATTEMPTS.length, detail: 'Rendering at a smaller size' })
-  const canvases = await renderPages(doc, RASTER_FALLBACK_SCALE)
-  let lo = 0
-  let hi = 1
-  for (let i = 0; i < RASTER_QUALITY_STEPS; i++) {
-    const q = Math.max(RASTER_FALLBACK_MIN_QUALITY, (lo + hi) / 2)
-    onProgress?.({
-      stage: 'searching',
-      scaleAttempt: RASTER_SCALE_ATTEMPTS.length,
-      detail: `Trying quality ${Math.round(q * 100)}%`,
-    })
-    const bytes = await buildRasterPdf(canvases, q)
-    if (!smallest || bytes.length < smallest.length) smallest = bytes
-    if (bytes.length <= targetBytes) return { bytes, hitTarget: true }
-    hi = q
-    if (q <= RASTER_FALLBACK_MIN_QUALITY) break
-  }
-
-  return { bytes: smallest!, hitTarget: false }
+  const finalAttempt = await encodeRasterAttempt(base, finalScale, finalQuality)
+  const bytes = await buildRasterPdf(finalAttempt)
+  return { bytes, hitTarget: hitTarget && bytes.length <= targetBytes }
 }
 
 /**
@@ -234,6 +248,11 @@ async function rasterizeFallback(
  * images, removed unreferenced objects, object-stream output) runs
  * alongside this for free. Whole-page rasterization is only used as a last
  * resort, for PDFs with no recompressible images or an unreachable target.
+ *
+ * The scale/quality search only ever touches pdf-lib twice: once to
+ * baseline "how big is everything except the images I'm about to swap",
+ * and once at the end to actually apply the winning attempt. Every step in
+ * between is a cheap, parallel, in-memory JPEG re-encode.
  */
 export async function compressPdfToTarget(
   file: File,
@@ -288,30 +307,49 @@ export async function compressPdfToTarget(
   }
 
   if (decoded.size > 0) {
+    // One real save gives an accurate baseline for "everything that isn't
+    // one of the images we're about to recompress" (post metadata-strip,
+    // post-dedupe, post object-stream packing), so every subsequent search
+    // step can estimate final size with just a sum of JPEG byte lengths.
+    const baselineBytes = await pdfDoc.save({ useObjectStreams: true })
+    const decodedOriginalTotal = Array.from(decoded.keys()).reduce(
+      (sum, key) => sum + (candidates.get(key)?.originalBytes.length ?? 0),
+      0,
+    )
+    const baseOverhead = baselineBytes.length - decodedOriginalTotal
+    const estimateTarget = effectiveTarget * ESTIMATE_SAFETY_MARGIN
+
     const measureScale = async (scale: number) => {
       onProgress?.({ stage: 'searching', scaleAttempt: 1, detail: `Trying image scale ${Math.round(scale * 100)}%` })
-      const bytes = await applyAttempt(pdfDoc!, candidates, decoded, scale, PRIMARY_QUALITY)
-      return bytes.length
+      const encoded = await encodeAllCandidates(decoded, scale, PRIMARY_QUALITY)
+      let sum = baseOverhead
+      for (const e of encoded.values()) sum += e.bytes.length
+      return sum
     }
-    const scaleResult = await binarySearchParam(measureScale, MIN_SCALE, 1, SCALE_STEPS, effectiveTarget)
+    const scaleResult = await binarySearchParam(measureScale, MIN_SCALE, 1, SCALE_STEPS, estimateTarget)
 
+    let finalEncoded: Map<string, EncodedImage>
     if (scaleResult.fits) {
-      await applyAttempt(pdfDoc, candidates, decoded, scaleResult.value, PRIMARY_QUALITY)
+      finalEncoded = await encodeAllCandidates(decoded, scaleResult.value, PRIMARY_QUALITY)
     } else {
       const measureQuality = async (quality: number) => {
         onProgress?.({ stage: 'searching', scaleAttempt: 2, detail: `Trying image quality ${Math.round(quality * 100)}%` })
-        const bytes = await applyAttempt(pdfDoc!, candidates, decoded, MIN_SCALE, quality)
-        return bytes.length
+        const encoded = await encodeAllCandidates(decoded, MIN_SCALE, quality)
+        let sum = baseOverhead
+        for (const e of encoded.values()) sum += e.bytes.length
+        return sum
       }
       const qualityResult = await binarySearchParam(
         measureQuality,
         FALLBACK_MIN_QUALITY,
         PRIMARY_QUALITY,
         FALLBACK_QUALITY_STEPS,
-        effectiveTarget,
+        estimateTarget,
       )
-      await applyAttempt(pdfDoc, candidates, decoded, MIN_SCALE, qualityResult.fits ? qualityResult.value : FALLBACK_MIN_QUALITY)
+      const finalQuality = qualityResult.fits ? qualityResult.value : FALLBACK_MIN_QUALITY
+      finalEncoded = await encodeAllCandidates(decoded, MIN_SCALE, finalQuality)
     }
+    applyEncoded(pdfDoc, candidates, finalEncoded)
   }
 
   removeUnreferencedObjects(pdfDoc)

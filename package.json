@@ -1,7 +1,7 @@
 {
   "name": "squish",
   "private": true,
-  "version": "0.2.1-beta",
+  "version": "0.3.0-beta",
   "description": "Convert, combine, and compress images and PDFs, entirely in your browser. Nothing is ever uploaded.",
   "type": "module",
   "license": "MIT",

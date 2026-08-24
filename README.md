@@ -7,7 +7,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/squish?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/squish?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/squish?style=flat-square)
-![Version](https://img.shields.io/badge/version-v0.2.0--alpha-red?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.3.0--beta-orange?style=flat-square)
 
 ---
 
@@ -71,7 +71,7 @@ So I built her one. It converts image formats, stitches images into a PDF, and c
 
 For images, Squish binary-searches the quality parameter (for JPEG, WebP, and AVIF) until the output lands just under your target size. If the lowest quality is still too big, it progressively downscales the image and searches again. PNG and BMP have no quality knob, so they rely on the downscale step alone.
 
-For PDFs, there's no server-side library to lean on, so Squish renders each page to a canvas with pdf.js, then rebuilds the PDF with pdf-lib, binary-searching JPEG quality (and render resolution) the same way. This trades text-selectability for a hard size guarantee, which is the standard trade-off for a compressor that can't touch a server.
+For PDFs, Squish decodes each embedded photo with pdf.js, downsamples and recompresses it as JPEG, and swaps it back into the original PDF object with pdf-lib — page structure, vector shapes, and text are never touched, so text stays sharp and selectable even when the file shrinks by two or three orders of magnitude. Only PDFs with no recompressible images (pure text/vector) or an unreachably aggressive target fall back to rendering whole pages as images, which trades away text-selectability for a hard size guarantee.
 
 ---
 
