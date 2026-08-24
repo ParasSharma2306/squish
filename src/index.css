@@ -1,0 +1,609 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-soft: #eef2ff;
+  --accent-text: #ffffff;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0f1a;
+    --surface: #131a2b;
+    --surface-2: #1a2338;
+    --border: #263049;
+    --text: #e6eaf5;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --accent-soft: #1e2544;
+    --accent-text: #0b0f1a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font-family: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+.container {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.site-header {
+  padding: 28px 0 8px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.brand img {
+  width: 34px;
+  height: 34px;
+  display: block;
+}
+
+.brand-name {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin: 6px 0 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 24px 0 20px;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: 12px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+main {
+  flex: 1;
+  padding-bottom: 48px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.card + .card {
+  margin-top: 16px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dropzone:hover,
+.dropzone.dragging {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dropzone strong {
+  color: var(--text);
+}
+
+.dropzone input {
+  display: none;
+}
+
+.dz-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-top: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 150px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+select,
+input[type='number'],
+input[type='text'] {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  min-width: 0;
+}
+
+input[type='range'] {
+  accent-color: var(--accent);
+  width: 100%;
+  min-width: 120px;
+}
+
+.size-input {
+  display: flex;
+  gap: 0;
+}
+
+.size-input input {
+  border-radius: 8px 0 0 8px;
+  border-right: none;
+  width: 100px;
+}
+
+.size-input select {
+  border-radius: 0 8px 8px 0;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 9px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--accent-text);
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+}
+
+.file-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.file-type-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  border-radius: 7px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  position: relative;
+}
+
+/* Expands the tappable area to ~44px without growing the visible button or
+   the row it sits in, so tight rows (like the PDF reorder controls) still
+   fit three buttons on a narrow phone screen. */
+.icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+}
+
+.icon-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  padding: 0 2px;
+  user-select: none;
+  display: none;
+  flex-shrink: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .drag-handle {
+    display: flex;
+  }
+}
+
+.file-item.dragging {
+  opacity: 0.4;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.pill.success {
+  background: rgba(22, 163, 74, 0.12);
+  color: var(--success);
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.result-size {
+  font-size: 14px;
+}
+
+.result-size b {
+  font-size: 16px;
+}
+
+.strike {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+
+.progress-note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.privacy-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 36px 0 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.footer-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  justify-content: space-between;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 130px;
+}
+
+.footer-col h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin: 0 0 2px;
+}
+
+.footer-col a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.footer-col a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.footer-brand-col {
+  max-width: 260px;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.footer-brand-col p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.footer-bottom {
+  max-width: 880px;
+  margin: 24px auto 0;
+  padding: 16px 20px 0;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 12.5px;
+}
+
+.footer-bottom a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer-bottom a:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 560px) {
+  .card {
+    padding: 18px;
+  }
+  .field-row {
+    gap: 12px;
+  }
+  /* Font-size below 16px makes iOS Safari zoom the page in on focus. */
+  select,
+  input[type='number'],
+  input[type='text'] {
+    font-size: 16px;
+  }
+  /* Three fixed-width tabs don't reliably fit a narrow phone screen, so
+     switch to an equal-width segmented control instead of relying on the
+     desktop fit-content + scroll behavior (which hides "Compress" offscreen
+     with no visual hint that it's scrollable). */
+  .tabs {
+    width: 100%;
+    overflow-x: visible;
+  }
+  .tab-btn {
+    flex: 1;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.25;
+    padding: 8px 4px;
+    font-size: 12.5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .field-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .field-row > .field {
+    width: 100%;
+  }
+  .size-input input {
+    width: auto;
+    flex: 1;
+  }
+  .file-item {
+    gap: 10px;
+    padding: 10px;
+  }
+  .file-thumb,
+  .file-type-icon {
+    width: 38px;
+    height: 38px;
+  }
+}

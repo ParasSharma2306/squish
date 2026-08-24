@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Use - Squish</title>
+  <meta name="description" content="Squish terms of use: a free, open-source, browser-only tool provided as-is." />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <script defer src="https://umami.parassharma.in/script.js" data-website-id="7332a58a-1ab3-4436-a41e-613d0f53e197"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #4f46e5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f1a;
+        --surface: #131a2b;
+        --border: #263049;
+        --text: #e6eaf5;
+        --text-muted: #94a3b8;
+        --accent: #818cf8;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    nav img { width: 26px; height: 26px; }
+    nav a.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); font-weight: 800; }
+    nav a.back { margin-left: auto; display: flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 14px; }
+    nav a.back:hover { color: var(--accent); }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; }
+    h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.02em; }
+    .updated { color: var(--text-muted); font-size: 13px; margin-bottom: 32px; }
+    h2 { font-size: 19px; color: var(--accent); margin: 32px 0 10px; }
+    p, li { color: var(--text-muted); }
+    a { color: var(--accent); }
+    footer { border-top: 1px solid var(--border); padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="brand" href="/">
+      <img src="/logo.svg" alt="" />
+      Squish
+    </a>
+    <a class="back" href="/">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      Back to app
+    </a>
+  </nav>
+
+  <main>
+    <h1>Terms of Use</h1>
+    <div class="updated">Last updated: August 2026</div>
+
+    <h2>Acceptance</h2>
+    <p>By using Squish, you agree to these terms. If you don't agree, please don't use the app.</p>
+
+    <h2>What Squish is</h2>
+    <p>Squish is a free, open-source, browser-only tool for converting image formats, combining images into a PDF, and compressing images or PDFs toward a target file size. All processing happens locally on your device. Squish has no backend and never receives your files.</p>
+
+    <h2>Your files, your responsibility</h2>
+    <p>You are solely responsible for the files you process with Squish and for how you use the output. Don't use Squish to process content you don't have the right to handle. Because nothing is ever uploaded, we have no visibility into and no control over what you do with the app.</p>
+
+    <h2>No warranty</h2>
+    <p>Squish is provided "as is," without warranty of any kind, express or implied. We don't guarantee it will be error-free, available at all times, or fit for any particular purpose. Always keep your own backups. Squish is not a substitute for one.</p>
+
+    <h2>Limitation of liability</h2>
+    <p>To the fullest extent permitted by law, Paras Sharma and any contributors to Squish are not liable for any damages or data loss arising from your use of the app.</p>
+
+    <h2>Open source</h2>
+    <p>Squish is released under the <a href="https://github.com/ParasSharma2306/squish/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT License</a>. You're free to use, modify, self-host, and redistribute it under the terms of that license.</p>
+
+    <h2>Changes to these terms</h2>
+    <p>These terms may be updated from time to time. Continued use of Squish after a change means you accept the updated terms.</p>
+
+    <h2>Contact</h2>
+    <p>Questions? Reach out to Paras Sharma at <a href="mailto:hello@parassharma.com">hello@parassharma.com</a> or via <a href="https://parassharma.com" target="_blank" rel="noreferrer">parassharma.com</a>.</p>
+  </main>
+
+  <footer>
+    <a href="/privacy.html">Privacy Policy</a> · <a href="/">Squish</a> · &copy; <span id="y"></span> Paras Sharma
+  </footer>
+  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>

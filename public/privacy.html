@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy - Squish</title>
+  <meta name="description" content="Squish privacy policy. Your images and PDFs never leave your device. We collect no file data." />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <script defer src="https://umami.parassharma.in/script.js" data-website-id="7332a58a-1ab3-4436-a41e-613d0f53e197"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #4f46e5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f1a;
+        --surface: #131a2b;
+        --border: #263049;
+        --text: #e6eaf5;
+        --text-muted: #94a3b8;
+        --accent: #818cf8;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    nav img { width: 26px; height: 26px; }
+    nav a.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); font-weight: 800; }
+    nav a.back { margin-left: auto; display: flex; align-items: center; gap: 4px; color: var(--text-muted); text-decoration: none; font-size: 14px; }
+    nav a.back:hover { color: var(--accent); }
+    .icon-inline { display: inline-flex; vertical-align: -3px; flex-shrink: 0; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; }
+    h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.02em; }
+    .updated { color: var(--text-muted); font-size: 13px; margin-bottom: 32px; }
+    .highlight {
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 32px;
+      font-weight: 500;
+    }
+    h2 { font-size: 19px; color: var(--accent); margin: 32px 0 10px; }
+    p, li { color: var(--text-muted); }
+    a { color: var(--accent); }
+    footer { border-top: 1px solid var(--border); padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="brand" href="/">
+      <img src="/logo.svg" alt="" />
+      Squish
+    </a>
+    <a class="back" href="/">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      Back to app
+    </a>
+  </nav>
+
+  <main>
+    <h1>Privacy Policy</h1>
+    <div class="updated">Last updated: August 2026</div>
+
+    <div class="highlight">
+      <svg class="icon-inline" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      Your images and PDFs never leave your device. Squish runs entirely in your browser. We don't collect, store, or transmit any file data.
+    </div>
+
+    <h2>How Squish works</h2>
+    <p>Squish is a static, client-side web app. When you convert, combine, or compress a file, the work happens entirely inside your browser using the Canvas API and JavaScript libraries bundled with the app. Your files are never uploaded to a server, and no server ever sees their contents.</p>
+
+    <h2>What data we collect</h2>
+    <p>None about your files. Squish has no backend, no database, and no file storage. We do not read, log, or transmit the images or PDFs you process.</p>
+
+    <h2>Analytics</h2>
+    <p>Squish uses <a href="https://umami.is" target="_blank" rel="noreferrer">Umami</a>, a self-hosted, cookieless analytics tool, to collect anonymous, aggregate usage statistics such as page views and referrers. This never includes file names, file contents, or any personally identifying information.</p>
+
+    <h2>Local storage &amp; offline support</h2>
+    <p>Squish is installable as a Progressive Web App. A service worker caches the app's own code so it can load offline; this cache never contains any file you process. Squish does not set tracking cookies.</p>
+
+    <h2>Third-party libraries</h2>
+    <p>Squish bundles <a href="https://pdf-lib.js.org/" target="_blank" rel="noreferrer">pdf-lib</a>, <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noreferrer">pdf.js</a>, and <a href="https://stuk.github.io/jszip/" target="_blank" rel="noreferrer">JSZip</a> directly into the app build. None of them are loaded from an external CDN at runtime, and none of them transmit your data anywhere.</p>
+
+    <h2>Children's privacy</h2>
+    <p>Squish does not knowingly collect any information from anyone, including children under 13.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy? Reach out to Paras Sharma at <a href="mailto:hello@parassharma.com">hello@parassharma.com</a> or via <a href="https://parassharma.com" target="_blank" rel="noreferrer">parassharma.com</a>.</p>
+  </main>
+
+  <footer>
+    <a href="/terms.html">Terms of Use</a> · <a href="/">Squish</a> · &copy; <span id="y"></span> Paras Sharma
+  </footer>
+  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>
