@@ -1,3 +1,6 @@
+// Kept in sync with package.json's "version" field.
+const APP_VERSION = '0.2.1-beta'
+
 export function Footer() {
   return (
     <footer>
@@ -44,7 +47,7 @@ export function Footer() {
         <a href="https://parassharma.com" target="_blank" rel="noreferrer">
           Paras Sharma
         </a>
-        . MIT licensed &amp; open source.
+        . MIT licensed &amp; open source. <span style={{ opacity: 0.7 }}>v{APP_VERSION}</span>
       </div>
     </footer>
   )

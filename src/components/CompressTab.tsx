@@ -119,6 +119,24 @@ export function CompressTab() {
         hint="Quality is binary-searched to land as close as possible to your target."
       />
 
+      <details className="how-it-works">
+        <summary>How compression works</summary>
+        <p>
+          <b>PDFs:</b> embedded photos are decoded, downsampled, and recompressed as JPEG right where they
+          live in the file — page structure, vector shapes, and text are never touched, so text stays sharp
+          and selectable. Resolution is reduced before quality (quality is held around 80% and only drops
+          further if downsampling alone can't hit the target). Along the way, unused metadata, thumbnails,
+          and duplicate images are stripped, and the file is rebuilt with compact object-stream encoding.
+          Only if a PDF has no recompressible images (pure text/vector) or an extremely aggressive target
+          does it fall back to rendering pages as images.
+        </p>
+        <p>
+          <b>Images:</b> the same downsample-first approach applies — resolution is reduced at a fixed
+          ~80% quality before quality itself is lowered, since a modest resolution cut is usually invisible
+          on screen while heavy quality loss shows up fast as blocking and smearing.
+        </p>
+      </details>
+
       <div className="field-row">
         <div className="field">
           <label htmlFor="target">Target size</label>

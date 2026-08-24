@@ -476,6 +476,30 @@ input[type='range'] {
   margin-top: 14px;
 }
 
+.how-it-works {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.how-it-works summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.how-it-works p {
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
+.how-it-works p:first-of-type {
+  margin-top: 10px;
+}
+
 footer {
   border-top: 1px solid var(--border);
   padding: 36px 0 20px;

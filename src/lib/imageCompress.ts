@@ -10,74 +10,42 @@ export interface CompressResult {
   hitTarget: boolean
 }
 
-const QUALITY_STEPS = 8
+// JPEG/WebP/AVIF quality is held fixed here for the primary pass; the
+// binary search only varies how much the image is downsampled. A modest
+// resolution cut is visually free on-screen, whereas quality artifacts
+// (blocking, smearing — especially bad for screenshots/diagrams/text) show
+// up fast once quality drops much below this, so scale is the first lever.
+const PRIMARY_QUALITY = 0.82
 const SCALE_STEPS = 6
-const SCALE_FACTOR = 0.82
-
-// JPEG/WebP/AVIF quality below this starts producing visible blocking and
-// smearing, which is especially bad for screenshots, diagrams, and anything
-// with text in it. The primary search never goes below this and downscales
-// instead, since a smaller image at moderate quality reads far better than
-// a full-size image crushed to near-zero quality for the same byte budget.
-const MIN_READABLE_QUALITY = 0.35
-// Absolute last resort if even the smallest reasonable size can't hit the
-// target at the readable floor, so an aggressive target is still honored as
-// closely as possible instead of just giving up.
-const FALLBACK_MIN_QUALITY = 0.1
+const MIN_SCALE = 0.15
 const MIN_DIMENSION = 16
+
+// Secondary fallback once downsampling to the floor still can't hit the
+// target: start trading quality away too, but stay above the point where
+// artifacts get obviously ugly.
+const MIN_READABLE_QUALITY = 0.35
+// Absolute last resort if even the readable floor at minimum scale can't
+// hit the target, so an aggressive target is still honored as closely as
+// possible instead of just giving up.
+const FALLBACK_MIN_QUALITY = 0.1
 
 function encodeAt(canvas: HTMLCanvasElement, format: OutputFormat, mime: string, quality?: number) {
   if (format === 'bmp') return Promise.resolve(encodeBmp(canvas))
   return canvasToBlob(canvas, mime, quality)
 }
 
-/**
- * Binary-searches quality within [minQuality, 1]. `result` is set only if
- * minQuality itself fit; `floorAttempt` is always returned so callers can
- * track a "closest so far" baseline even when this scale never fits.
- */
-async function searchQuality(
-  canvas: HTMLCanvasElement,
-  format: OutputFormat,
-  mime: string,
-  targetBytes: number,
-  minQuality: number,
-  width: number,
-  height: number,
-): Promise<{ result: CompressResult | null; floorAttempt: CompressResult }> {
-  const floorBlob = await encodeAt(canvas, format, mime, minQuality)
-  const floorAttempt: CompressResult = {
-    blob: floorBlob,
-    width,
-    height,
-    quality: minQuality,
-    hitTarget: floorBlob.size <= targetBytes,
+function scaledDims(width: number, height: number, scale: number): { w: number; h: number } {
+  return {
+    w: Math.max(MIN_DIMENSION, Math.round(width * scale)),
+    h: Math.max(MIN_DIMENSION, Math.round(height * scale)),
   }
-  if (floorBlob.size > targetBytes) return { result: null, floorAttempt }
-
-  let lo = minQuality
-  let hi = 1
-  let best: CompressResult = floorAttempt
-
-  for (let i = 0; i < QUALITY_STEPS; i++) {
-    const q = (lo + hi) / 2
-    const blob = await encodeAt(canvas, format, mime, q)
-    if (blob.size <= targetBytes) {
-      best = { blob, width, height, quality: q, hitTarget: true }
-      lo = q
-    } else {
-      hi = q
-    }
-  }
-
-  return { result: best, floorAttempt }
 }
 
 /**
- * For JPEG/WebP/AVIF, quality is binary-searched within a readable floor at
- * each resolution (largest first); only once the floor itself can't fit the
- * target does the image get downscaled and the search repeat. PNG and BMP
- * have no quality knob, so the downscale loop is their only lever.
+ * For JPEG/WebP/AVIF: quality is held fixed and the image is downsampled
+ * (largest first) via binary search until it fits the target. Only if the
+ * minimum scale still overshoots does a secondary quality search kick in.
+ * PNG and BMP have no quality knob, so downscaling is their only lever.
  */
 export async function compressImageToTarget(
   file: File,
@@ -88,65 +56,126 @@ export async function compressImageToTarget(
   const mime = FORMAT_MIME[format]
   const supportsQuality = QUALITY_TUNABLE_FORMATS.includes(format)
   const background = OPAQUE_FORMATS.includes(format) ? '#ffffff' : undefined
+  const nativeW = img.naturalWidth
+  const nativeH = img.naturalHeight
 
   // Already small enough in the requested format. Return as-is rather than
   // re-encoding, which could (for lossless/near-lossless cases) make it bigger.
   if (file.type === mime && file.size <= targetBytes) {
-    return { blob: file, width: img.naturalWidth, height: img.naturalHeight, quality: null, hitTarget: true }
+    return { blob: file, width: nativeW, height: nativeH, quality: null, hitTarget: true }
   }
   // Never intentionally produce an output bigger than the original. If the
   // requested target exceeds the source size, treat the source size as the
   // real ceiling so the search can't converge on a "successful" upsize.
   const effectiveTarget = Math.min(targetBytes, file.size)
 
-  let width = img.naturalWidth
-  let height = img.naturalHeight
-  let smallest: CompressResult | null = null
-
-  for (let s = 0; s < SCALE_STEPS; s++) {
-    const canvas = drawImageToCanvas(img, width, height, background)
-
-    if (supportsQuality) {
-      const { result, floorAttempt } = await searchQuality(
-        canvas,
-        format,
-        mime,
-        effectiveTarget,
-        MIN_READABLE_QUALITY,
-        width,
-        height,
-      )
-      if (!smallest || floorAttempt.blob.size < smallest.blob.size) smallest = floorAttempt
-      if (result) return result
-    } else {
-      const blob = await encodeAt(canvas, format, mime)
-      const candidate: CompressResult = { blob, width, height, quality: null, hitTarget: blob.size <= effectiveTarget }
-      if (!smallest || blob.size < smallest.blob.size) smallest = candidate
-      if (blob.size <= effectiveTarget) return candidate
-    }
-
-    width = Math.round(width * SCALE_FACTOR)
-    height = Math.round(height * SCALE_FACTOR)
-    if (width < MIN_DIMENSION || height < MIN_DIMENSION) break
+  async function encodeScale(scale: number, quality: number | undefined) {
+    const { w, h } = scaledDims(nativeW, nativeH, scale)
+    const canvas = drawImageToCanvas(img, w, h, background)
+    const blob = await encodeAt(canvas, format, mime, quality)
+    return { blob, width: w, height: h }
   }
 
-  // Last resort for quality-tunable formats: the readable floor couldn't hit
-  // the target at any scale, so drop the quality floor at the smallest size
-  // tried so far to get as close as possible. hitTarget stays false so the
-  // UI shows "closest possible" rather than claiming success.
+  let smallest: CompressResult | null = null
+  function track(candidate: CompressResult) {
+    if (!smallest || candidate.blob.size < smallest.blob.size) smallest = candidate
+  }
+
   if (supportsQuality) {
-    const canvas = drawImageToCanvas(img, width, height, background)
-    let lo = 0
-    let hi = MIN_READABLE_QUALITY
-    for (let i = 0; i < QUALITY_STEPS; i++) {
+    // Primary: fixed quality, binary search scale.
+    const floor = await encodeScale(MIN_SCALE, PRIMARY_QUALITY)
+    const floorResult: CompressResult = {
+      blob: floor.blob,
+      width: floor.width,
+      height: floor.height,
+      quality: PRIMARY_QUALITY,
+      hitTarget: floor.blob.size <= effectiveTarget,
+    }
+    track(floorResult)
+
+    if (floor.blob.size <= effectiveTarget) {
+      let best = floorResult
+      let lo = MIN_SCALE
+      let hi = 1
+      for (let i = 0; i < SCALE_STEPS; i++) {
+        const mid = (lo + hi) / 2
+        const attempt = await encodeScale(mid, PRIMARY_QUALITY)
+        if (attempt.blob.size <= effectiveTarget) {
+          best = { blob: attempt.blob, width: attempt.width, height: attempt.height, quality: PRIMARY_QUALITY, hitTarget: true }
+          lo = mid
+        } else {
+          hi = mid
+        }
+      }
+      return best
+    }
+
+    // Secondary: minimum scale still overshoots — trade quality away too,
+    // bounded by a readable floor, then an absolute last-resort floor.
+    let lo = MIN_READABLE_QUALITY
+    let hi = PRIMARY_QUALITY
+    const readableFloor = await encodeScale(MIN_SCALE, MIN_READABLE_QUALITY)
+    const readableFloorResult: CompressResult = {
+      blob: readableFloor.blob,
+      width: readableFloor.width,
+      height: readableFloor.height,
+      quality: MIN_READABLE_QUALITY,
+      hitTarget: readableFloor.blob.size <= effectiveTarget,
+    }
+    track(readableFloorResult)
+
+    if (readableFloor.blob.size <= effectiveTarget) {
+      let best = readableFloorResult
+      for (let i = 0; i < SCALE_STEPS; i++) {
+        const mid = (lo + hi) / 2
+        const attempt = await encodeScale(MIN_SCALE, mid)
+        if (attempt.blob.size <= effectiveTarget) {
+          best = { blob: attempt.blob, width: attempt.width, height: attempt.height, quality: mid, hitTarget: true }
+          lo = mid
+        } else {
+          hi = mid
+        }
+      }
+      return best
+    }
+
+    // Absolute last resort: drop below the readable floor to get as close
+    // to an aggressive target as possible. hitTarget stays reflective of
+    // whether this actually lands under budget.
+    lo = 0
+    hi = MIN_READABLE_QUALITY
+    let best = readableFloorResult
+    for (let i = 0; i < SCALE_STEPS; i++) {
       const q = Math.max(FALLBACK_MIN_QUALITY, (lo + hi) / 2)
-      const blob = await encodeAt(canvas, format, mime, q)
-      const candidate: CompressResult = { blob, width, height, quality: q, hitTarget: blob.size <= effectiveTarget }
-      if (!smallest || blob.size < smallest.blob.size) smallest = candidate
-      if (blob.size <= effectiveTarget) return candidate
+      const attempt = await encodeScale(MIN_SCALE, q)
+      const candidate: CompressResult = {
+        blob: attempt.blob,
+        width: attempt.width,
+        height: attempt.height,
+        quality: q,
+        hitTarget: attempt.blob.size <= effectiveTarget,
+      }
+      track(candidate)
+      if (candidate.hitTarget) return candidate
+      if (candidate.blob.size < best.blob.size) best = candidate
       hi = q
       if (q <= FALLBACK_MIN_QUALITY) break
     }
+    return smallest ?? best
+  }
+
+  // PNG / BMP: no quality knob, downscale until it fits.
+  let width = nativeW
+  let height = nativeH
+  for (let s = 0; s < SCALE_STEPS + 4; s++) {
+    const canvas = drawImageToCanvas(img, width, height, background)
+    const blob = await encodeAt(canvas, format, mime)
+    const candidate: CompressResult = { blob, width, height, quality: null, hitTarget: blob.size <= effectiveTarget }
+    track(candidate)
+    if (candidate.hitTarget) return candidate
+    width = Math.round(width * 0.82)
+    height = Math.round(height * 0.82)
+    if (width < MIN_DIMENSION || height < MIN_DIMENSION) break
   }
 
   return smallest!
