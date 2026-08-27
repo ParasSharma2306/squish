@@ -148,6 +148,100 @@ export function swapImage(pdfDoc: PDFDocument, ref: PDFRef, jpegBytes: Uint8Arra
   pdfDoc.context.assign(ref, stream)
 }
 
+/**
+ * Replaces the image XObject at `ref` with a 1-bit CCITT Group 4 stream.
+ *
+ * `BlackIs1` is left false, the PDF default, so a decoded 0 bit means black
+ * — which lines up with DeviceGray, where sample 0 is black. That keeps the
+ * polarity correct without needing a `/Decode` array to flip it back.
+ */
+export function swapImageCcitt(
+  pdfDoc: PDFDocument,
+  ref: PDFRef,
+  ccittBytes: Uint8Array,
+  width: number,
+  height: number,
+) {
+  const dict = pdfDoc.context.obj({
+    Type: 'XObject',
+    Subtype: 'Image',
+    Width: width,
+    Height: height,
+    ColorSpace: 'DeviceGray',
+    BitsPerComponent: 1,
+    Filter: 'CCITTFaxDecode',
+    DecodeParms: {
+      K: -1,
+      Columns: width,
+      Rows: height,
+      BlackIs1: false,
+      EncodedByteAlign: false,
+    },
+  })
+  pdfDoc.context.assign(ref, PDFRawStream.of(dict, ccittBytes))
+}
+
+const FONT_FILE_KEYS = [PDFName.of('FontFile'), PDFName.of('FontFile2'), PDFName.of('FontFile3')]
+
+/**
+ * Merges byte-identical embedded font programs.
+ *
+ * Documents assembled from several sources (a merged PDF, a report with a
+ * generated cover page) routinely embed the same font once per source, and
+ * a font program is rarely small. Note this is deduplication, not
+ * subsetting: trimming unused glyphs out of a font would mean parsing the
+ * content streams to find which glyphs are actually drawn and then
+ * rewriting the CFF/TrueType tables, which is a substantially larger piece
+ * of work than it sounds and is not attempted here.
+ *
+ * Returns the number of duplicate font programs merged away.
+ */
+export function dedupeFonts(pdfDoc: PDFDocument): number {
+  const fontRefs = new Map<string, PDFRef>()
+  for (const [, obj] of pdfDoc.context.enumerateIndirectObjects()) {
+    const dict = obj instanceof PDFDict ? obj : obj instanceof PDFStream ? obj.dict : null
+    if (!dict) continue
+    for (const key of FONT_FILE_KEYS) {
+      const value = dict.get(key)
+      if (value instanceof PDFRef) fontRefs.set(keyOf(value), value)
+    }
+  }
+  if (fontRefs.size < 2) return 0
+
+  const byLength = new Map<number, { ref: PDFRef; bytes: Uint8Array }[]>()
+  for (const ref of fontRefs.values()) {
+    const stream = pdfDoc.context.lookup(ref)
+    if (!(stream instanceof PDFRawStream)) continue
+    const entry = { ref, bytes: stream.contents }
+    const group = byLength.get(entry.bytes.length)
+    if (group) group.push(entry)
+    else byLength.set(entry.bytes.length, [entry])
+  }
+
+  const remap = new Map<string, PDFRef>()
+  for (const group of byLength.values()) {
+    if (group.length < 2) continue
+    const merged = new Set<number>()
+    for (let i = 0; i < group.length; i++) {
+      if (merged.has(i)) continue
+      for (let j = i + 1; j < group.length; j++) {
+        if (merged.has(j)) continue
+        if (bytesEqual(group[i].bytes, group[j].bytes)) {
+          remap.set(keyOf(group[j].ref), group[i].ref)
+          merged.add(j)
+        }
+      }
+    }
+  }
+
+  if (remap.size > 0) {
+    for (const [, obj] of pdfDoc.context.enumerateIndirectObjects()) {
+      remapRefsInline(obj, remap)
+    }
+  }
+  return remap.size
+}
+
 /** Clears document Info metadata, XMP metadata stream, and page thumbnails. */
 export function stripMetadata(pdfDoc: PDFDocument) {
   const info = pdfDoc.context.lookupMaybe(pdfDoc.context.trailerInfo.Info, PDFDict)

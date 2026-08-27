@@ -7,7 +7,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/squish?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/squish?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/squish?style=flat-square)
-![Version](https://img.shields.io/badge/version-v0.3.0--beta-orange?style=flat-square)
+![Version](https://img.shields.io/badge/version-v0.4.0--beta.1-orange?style=flat-square)
 
 ---
 
@@ -32,8 +32,10 @@ So I built her one. It converts image formats, stitches images into a PDF, and c
 | Format conversion | Convert between JPG, PNG, WebP, BMP, and AVIF (when your browser supports encoding it) using the Canvas API |
 | Broad format input | Upload JPG, PNG, WebP, GIF, BMP, AVIF, or SVG source images |
 | Image to PDF | Combine one or more images into a single PDF, with drag-to-reorder before export (touch-friendly move up/down controls too) |
-| Image compression | Enter a target size; Squish binary-searches JPEG/WebP/AVIF quality (and resolution, if needed) to land as close as possible |
-| PDF compression | Enter a target size; Squish rasterizes pages with pdf.js and rebuilds the PDF with pdf-lib, binary-searching quality to land as close as possible |
+| Image compression | Two modes: hit a **target size**, or squeeze as far as possible while staying **visually identical** (quality chosen per image against a measured SSIM floor, not a fixed slider) |
+| Content-aware routing | Photographs go to a lossy codec; screenshots, diagrams and flat artwork take a lossless palette + [oxipng](https://github.com/shssoichiro/oxipng) route instead |
+| PDF compression | Embedded images are rewritten in place — page structure, vector shapes and text stay untouched and selectable. Photos are downsampled to the DPI they are actually drawn at; scanned pages are detected and coded losslessly as bilevel CCITT Group 4 |
+| Per-file reporting | Every file reports original size, new size, real % reduction, and which technique produced it |
 | 100% private | Every conversion happens in your browser. Nothing is ever uploaded, ever. |
 | No account needed | Open the page, drop a file, done. |
 | Installable PWA | Add Squish to your home screen or desktop and use it offline |
@@ -57,8 +59,10 @@ So I built her one. It converts image formats, stitches images into a PDF, and c
 | Layer | Tech |
 |-------|------|
 | Frontend | React + TypeScript, built with Vite |
-| Image processing | Canvas API for format conversion and quality-search compression, plus a small hand-rolled BMP encoder |
-| PDF creation and compression | [pdf-lib](https://pdf-lib.js.org/) for build and export, [pdf.js](https://mozilla.github.io/pdf.js/) for rendering pages during compression |
+| Image processing | Canvas API for encoding, a hand-rolled SSIM implementation for quality decisions, median-cut palette quantization, plus a small hand-rolled BMP encoder |
+| Lossless PNG | [oxipng](https://github.com/jamsinclair/jSquash) via WASM (~160 KB, loaded only when the PNG path is used) |
+| Bilevel coding | Hand-rolled ITU-T T.6 (CCITT Group 4) encoder, ~300 lines, no WASM |
+| PDF creation and compression | [pdf-lib](https://pdf-lib.js.org/) for structure rewriting and export, [pdf.js](https://mozilla.github.io/pdf.js/) for decoding embedded images and measuring their on-page placement |
 | Batch downloads | [JSZip](https://stuk.github.io/jszip/) |
 | PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) (manifest and offline service worker) |
 | Hosting | Static build, deployable anywhere (Nginx on a VPS, Netlify, Vercel, GitHub Pages, and so on) |
@@ -69,9 +73,39 @@ So I built her one. It converts image formats, stitches images into a PDF, and c
 
 ## How Compression Works
 
-For images, Squish binary-searches the quality parameter (for JPEG, WebP, and AVIF) until the output lands just under your target size. If the lowest quality is still too big, it progressively downscales the image and searches again. PNG and BMP have no quality knob, so they rely on the downscale step alone.
+Squish picks a technique per file rather than applying one setting to everything, and reports what it actually did.
 
-For PDFs, Squish decodes each embedded photo with pdf.js, downsamples and recompresses it as JPEG, and swaps it back into the original PDF object with pdf-lib — page structure, vector shapes, and text are never touched, so text stays sharp and selectable even when the file shrinks by two or three orders of magnitude. Only PDFs with no recompressible images (pure text/vector) or an unreachably aggressive target fall back to rendering whole pages as images, which trades away text-selectability for a hard size guarantee.
+### Images
+
+Every image is classified first. **Photographs** go through a lossy codec whose quality is binary-searched against a measured [SSIM](https://en.wikipedia.org/wiki/Structural_similarity) score, so the quality setting is derived per image instead of being a fixed number you guess at. The search runs on a downscaled proxy and the winner is then verified — and corrected — at full resolution, which keeps a 4 MP photo interactive.
+
+**Screenshots, diagrams and flat artwork** take a lossless route: the palette is reduced by median cut only as far as the same similarity check allows, then oxipng rebuilds the file. Lossy codecs are actively bad at this content — they smear exactly the hard edges that carry the meaning.
+
+In **target size** mode the same machinery is driven toward a byte budget instead, trading resolution first and quality second, because a modest resolution cut is usually invisible on screen while heavy quality loss shows up fast.
+
+### PDFs
+
+PDFs are rewritten in place. Page structure, vector content and text are never touched, so text stays sharp and selectable.
+
+- **Scanned pages** are detected, thresholded with Otsu's method, and coded losslessly with **CCITT Group 4**. This is the single largest win on scanned documents: JPEG spends its bit budget describing ringing around every letter edge, while Group 4 codes each row as differences against the row above — which is exactly the structure a page of text has. Group 4 is only kept when it actually beats the JPEG alternative, since it loses on noisy or dithered scans.
+- **Photographs** are downsampled to suit the size they are actually drawn at on the page, recovered from the content stream's transformation matrix — not whatever resolution the source over-provisioned. A 3000px image placed in a 300pt box is ~720 DPI; almost none of that survives being looked at.
+- **Duplicate images and duplicate embedded font programs** are merged, unreferenced objects are garbage-collected, metadata, XMP and page thumbnails are stripped, and the file is rebuilt with compact object streams.
+
+Only a PDF with no recompressible content, or a target too aggressive to reach any other way, falls back to rendering whole pages as images — which trades away text selectability for a hard size guarantee.
+
+### On compression ratios
+
+Results depend entirely on the file you start with. An already-optimised PNG may not shrink at all; an over-provisioned scanned PDF may shrink enormously. Squish reports the numbers it measured for *your* files and does not claim a fixed ratio. If a file cannot be improved, it says so and hands back the original untouched.
+
+### Verifying it yourself
+
+Three scripts measure the engine against generated inputs. Start the dev server (`npm run dev`), then:
+
+```bash
+node ccitt-roundtrip-check.mjs   # proves the Group 4 encoder round-trips pixel-exactly
+node engine-benchmark.mjs        # image engine: real sizes, techniques, SSIM, timings
+node pdf-benchmark.mjs           # PDF engine: scanned, over-provisioned and mixed documents
+```
 
 ---
 

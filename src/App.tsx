@@ -28,6 +28,24 @@ function App() {
           </a>
           <p className="tagline">Convert, combine and compress images and PDFs, right in your browser.</p>
 
+          {/* Squish's whole reason for existing is that the file never leaves
+              the device, so it says so on the page itself rather than only in
+              a policy nobody opens. */}
+          <div className="trust-strip">
+            <span className="trust-item">
+              <span className="trust-dot" /> No uploads
+            </span>
+            <span className="trust-item">
+              <span className="trust-dot" /> No accounts
+            </span>
+            <span className="trust-item">
+              <span className="trust-dot" /> No tracking
+            </span>
+            <span className="trust-item">
+              <span className="trust-dot" /> Works offline
+            </span>
+          </div>
+
           <div className="tabs" role="tablist">
             {TABS.map((t) => (
               <button
