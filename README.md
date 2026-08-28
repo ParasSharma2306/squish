@@ -264,10 +264,11 @@ MIT. Built by [Paras Sharma](https://parassharma.com)
 
 ## Sponsors
 
-A special thank you to everyone who supports Squish through GitHub Sponsors. This table (and a matching section on the live site) will grow as more people sponsor.
+A special thank you to everyone who supports Squish through GitHub Sponsors. This table and the sponsors carousel on the live site will grow as more people sponsor.
 
 | Sponsor | Amount |
 | --- | ---: |
+| [nicolevdw](https://github.com/nicolevdw) | $30 |
 | Dikshita Biswas | $5 |
 
 [Become a sponsor](https://github.com/sponsors/ParasSharma2306)
@@ -279,3 +280,4 @@ A special thank you to everyone who supports Squish through GitHub Sponsors. Thi
 More free, open-source, privacy-first tools from [parassharma.com](https://parassharma.com):
 
 - [ChatLume](https://chatlume.parassharma.in): free, open-source WhatsApp/Instagram chat viewer
+- [Calcify](https://calcify.parassharma.in): free, open-source calculator

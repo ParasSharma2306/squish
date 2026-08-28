@@ -39,6 +39,9 @@ export function Footer() {
           <a href="https://backdoor.parassharma.in" target="_blank" rel="noreferrer">
             Backdoor
           </a>
+          <a href="https://calcify.parassharma.in" target="_blank" rel="noreferrer">
+            Calcify
+          </a>
         </div>
       </div>
 

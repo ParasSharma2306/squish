@@ -96,7 +96,7 @@
     <p>Squish uses <a href="https://umami.is" target="_blank" rel="noreferrer">Umami</a>, a self-hosted, cookieless analytics tool, to collect anonymous, aggregate usage statistics such as page views and referrers. This never includes file names, file contents, or any personally identifying information.</p>
 
     <h2>Local storage &amp; offline support</h2>
-    <p>Squish is installable as a Progressive Web App. A service worker caches the app's own code so it can load offline; this cache never contains any file you process. Squish does not set tracking cookies.</p>
+    <p>Squish is installable as a Progressive Web App. It no longer caches its own code for offline use, so every visit loads the current version from the network; nothing you process is ever stored. Squish does not set tracking cookies.</p>
 
     <h2>Third-party libraries</h2>
     <p>Squish bundles <a href="https://pdf-lib.js.org/" target="_blank" rel="noreferrer">pdf-lib</a>, <a href="https://mozilla.github.io/pdf.js/" target="_blank" rel="noreferrer">pdf.js</a>, and <a href="https://stuk.github.io/jszip/" target="_blank" rel="noreferrer">JSZip</a> directly into the app build. None of them are loaded from an external CDN at runtime, and none of them transmit your data anywhere.</p>

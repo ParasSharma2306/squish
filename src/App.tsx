@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { ConvertTab } from './components/ConvertTab'
 import { Footer } from './components/Footer'
+import { Sponsors } from './components/Sponsors'
 
 const PdfTab = lazy(() => import('./components/PdfTab').then((m) => ({ default: m.PdfTab })))
 const CompressTab = lazy(() =>
@@ -71,6 +72,8 @@ function App() {
           </Suspense>
         </div>
       </main>
+
+      <Sponsors />
 
       <Footer />
     </>

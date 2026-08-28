@@ -1049,3 +1049,138 @@ footer {
     gap: var(--space-5);
   }
 }
+
+/* Sponsors carousel
+   --------------------------------------------------------------------------- */
+
+.sponsors {
+  border-top: 1px solid var(--border);
+  padding: var(--space-6) 0 var(--space-5);
+  overflow: hidden;
+}
+
+.sponsors-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.sponsors-head h2 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sponsors-cta {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sponsors-cta:hover {
+  text-decoration: underline;
+}
+
+.sponsors-sub {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* The belt runs the full viewport width rather than stopping at the container,
+   so cards enter and leave at the screen edges instead of appearing to pop out
+   of thin air mid-page. The mask fades both ends into the background. */
+.sponsor-marquee {
+  margin-top: var(--space-5);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.sponsor-track {
+  display: flex;
+  width: max-content;
+  gap: var(--space-3);
+  animation: sponsor-scroll 32s linear infinite;
+}
+
+.sponsor-marquee:hover .sponsor-track,
+.sponsor-track:focus-within {
+  animation-play-state: paused;
+}
+
+@keyframes sponsor-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.sponsor-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  padding: 10px var(--space-4) 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.sponsor-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.sponsor-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sponsor-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.sponsor-name {
+  font-size: var(--text-base);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sponsor-amount {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Without the animation the second copy of the belt is unreachable dead
+     weight, so the track collapses to a plain scrollable row instead. */
+  .sponsor-marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .sponsor-track {
+    animation: none;
+  }
+}

@@ -14,6 +14,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 // of drifting as a hand-copied snapshot in public/.
 const PDF_WASM_ROUTE = '/pdfjs-wasm/'
 
+// Names every Workbox cache bucket, so bumping it orphans the previous
+// deploy's caches rather than letting a stale entry outlive it. While
+// `selfDestroying` is on below the generated worker ignores this whole config,
+// so this is dormant — it's the switch to turn if caching is ever restored,
+// and it is already bumped past the v1 buckets the last release wrote.
+const CACHE_VERSION = 'v2'
+
 function pdfjsWasm(): Plugin {
   const sourceDir = fileURLToPath(new URL('./node_modules/pdfjs-dist/wasm/', import.meta.url))
   const files = () => readdirSync(sourceDir).filter((name) => statSync(join(sourceDir, name)).isFile())
@@ -55,6 +62,16 @@ export default defineConfig({
     react(),
     pdfjsWasm(),
     VitePWA({
+      // Caching is off. The previous release shipped a precaching service
+      // worker, and an installed one keeps answering from its own cache long
+      // after the deploy that replaced it — so simply deleting the config
+      // would strand those clients on old assets forever. `selfDestroying`
+      // instead ships a service worker whose only job is to unregister itself
+      // and delete every cache it finds, which is what actually gets an
+      // existing install back onto the network. The manifest below still
+      // ships, so the install prompt survives; what is gone is offline use and
+      // every cached response.
+      selfDestroying: true,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg'],
       manifest: {
@@ -77,6 +94,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cacheId: `squish-${CACHE_VERSION}`,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // pdf.js ships large `*_nowasm_fallback.js` files next to its wasm.
         // The glob above would sweep those into the precache — ~580 KB of
@@ -90,18 +108,18 @@ export default defineConfig({
           {
             urlPattern: ({ url }: { url: URL }) => url.pathname.includes('pdf.worker'),
             handler: 'CacheFirst',
-            options: { cacheName: 'pdfjs-worker' },
+            options: { cacheName: `pdfjs-worker-${CACHE_VERSION}` },
           },
           {
             urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/pdfjs-wasm/'),
             handler: 'CacheFirst',
-            options: { cacheName: 'pdfjs-wasm' },
+            options: { cacheName: `pdfjs-wasm-${CACHE_VERSION}` },
           },
           {
             // oxipng, and any other lazily-fetched wasm under /assets.
             urlPattern: ({ url }: { url: URL }) => url.pathname.endsWith('.wasm'),
             handler: 'CacheFirst',
-            options: { cacheName: 'squish-wasm' },
+            options: { cacheName: `squish-wasm-${CACHE_VERSION}` },
           },
         ],
       },
