@@ -1,5 +1,5 @@
 // Kept in sync with package.json's "version" field.
-const APP_VERSION = '0.4.0-beta.1'
+const APP_VERSION = '1.0.0'
 
 export function Footer() {
   return (

@@ -1,8 +1,22 @@
 # Changelog
 
 All notable changes to Squish are recorded here. This project follows
-[Semantic Versioning](https://semver.org/). While the version is below `1.0.0`,
-a minor bump is where breaking changes land.
+[Semantic Versioning](https://semver.org/).
+
+## [1.0.0] — 2026-08-30
+
+The first stable release. The beta line ends here: the compression engine and
+the interface shipped in `0.4.0-beta.1` have held up in use, so they are now
+the 1.0 surface, with no functional changes from the beta.
+
+### Changed
+
+- **Sponsor avatars.** The sponsors carousel shows each sponsor's GitHub avatar
+  in place of the generated initials. The images are checked into the repo and
+  bundled with the app rather than hotlinked from GitHub, so the promise that
+  Squish issues no third-party requests still holds.
+- Sponsor amounts read as a plain figure (`$30`) instead of a monthly rate
+  (`$30/mo`).
 
 ## [0.4.0-beta.1] — 2026-08-27
 

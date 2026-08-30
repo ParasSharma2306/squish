@@ -7,7 +7,7 @@
 ![Stars](https://img.shields.io/github/stars/ParasSharma2306/squish?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/ParasSharma2306/squish?style=flat-square)
 ![License](https://img.shields.io/github/license/ParasSharma2306/squish?style=flat-square)
-![Version](https://img.shields.io/badge/version-v0.4.0--beta.1-orange?style=flat-square)
+![Version](https://img.shields.io/badge/version-v1.0.0-blue?style=flat-square)
 
 ---
 
@@ -269,7 +269,7 @@ A special thank you to everyone who supports Squish through GitHub Sponsors. Thi
 | Sponsor | Amount |
 | --- | ---: |
 | [nicolevdw](https://github.com/nicolevdw) | $30 |
-| Dikshita Biswas | $5 |
+| [Dikshita Biswas](https://github.com/DikshitaBiswas) | $5 |
 
 [Become a sponsor](https://github.com/sponsors/ParasSharma2306)
 

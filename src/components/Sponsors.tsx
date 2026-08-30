@@ -1,11 +1,14 @@
+import dikshitabiswasAvatar from '../assets/sponsors/dikshitabiswas.png'
+import nicolevdwAvatar from '../assets/sponsors/nicolevdw.png'
+
 const SPONSORS_URL = 'https://github.com/sponsors/ParasSharma2306'
 
-type Sponsor = { name: string; handle: string; amount: number }
+type Sponsor = { name: string; handle: string; amount: number; avatar: string }
 
 // Kept in sync with the Sponsors table in README.md.
 const SPONSORS: Sponsor[] = [
-  { name: 'nicolevdw', handle: 'nicolevdw', amount: 30 },
-  { name: 'Dikshita Biswas', handle: 'dikshitabiswas', amount: 5 },
+  { name: 'nicolevdw', handle: 'nicolevdw', amount: 30, avatar: nicolevdwAvatar },
+  { name: 'Dikshita Biswas', handle: 'DikshitaBiswas', amount: 5, avatar: dikshitabiswasAvatar },
 ]
 
 // A marquee only reads as continuous motion if the strip is wider than the
@@ -13,19 +16,6 @@ const SPONSORS: Sponsor[] = [
 // large empty gap. Repeating the list until there are at least this many cards
 // keeps the belt full no matter how few sponsors there are.
 const MIN_CARDS = 8
-
-// Sponsor avatars are drawn from initials rather than hotlinked from
-// github.com. Squish makes a hard promise that it issues no third-party
-// requests, and an <img> pointing at GitHub would hand every visitor's IP to
-// GitHub just to render a decorative circle.
-function initials(name: string): string {
-  return name
-    .split(/[\s._-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
-    .join('')
-}
 
 export function Sponsors() {
   if (SPONSORS.length === 0) return null
@@ -50,12 +40,15 @@ export function Sponsors() {
         aria-hidden={decorative || undefined}
         tabIndex={decorative ? -1 : undefined}
       >
-        <span className="sponsor-avatar" aria-hidden="true">
-          {initials(s.name)}
-        </span>
+        {/* The GitHub avatars are checked into the repo and bundled with the
+            app rather than hotlinked from avatars.githubusercontent.com.
+            Squish makes a hard promise that it issues no third-party requests,
+            and an <img> pointing at GitHub would hand every visitor's IP to
+            GitHub just to render a decorative circle. */}
+        <img className="sponsor-avatar" src={s.avatar} alt="" width={40} height={40} loading="lazy" decoding="async" />
         <span className="sponsor-meta">
           <span className="sponsor-name">{s.name}</span>
-          <span className="sponsor-amount">${s.amount}/mo</span>
+          <span className="sponsor-amount">${s.amount}</span>
         </span>
       </a>
     )

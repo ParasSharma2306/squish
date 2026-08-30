@@ -1141,17 +1141,14 @@ footer {
 }
 
 .sponsor-avatar {
-  display: grid;
-  place-items: center;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
+  object-fit: cover;
+  /* The avatar loads from the bundle, but the tinted circle stands in while it
+     decodes so the card never flashes a transparent hole. */
   background: var(--accent-soft);
-  color: var(--accent);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  letter-spacing: 0.02em;
 }
 
 .sponsor-meta {
